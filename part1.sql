@@ -20,46 +20,56 @@ INSERT INTO students (first_name, last_name, email, enrollment_date) VALUES
 	('John', 'Doe', 'john.doe@example.com', '2023-09-01'),
 	('Jane', 'Smith', 'jane.smith@example.com', '2023-09-01'),
 	('Jim', 'Beam', 'jim.beam@example.com', '2023-09-02');
-ON CONFLICT DO NOTHING;
 
 SET search_path TO "Part1";
 
-CREATE OR REPLACE FUNCTION get_all_students()
+--GET ALL STUDENTS FUNCTION--
+CREATE OR REPLACE FUNCTION getAllStudents()
 RETURNS SETOF students
 LANGUAGE sql
 AS $$
-  SELECT * FROM students ORDER BY student_id;
+  SELECT *
+  FROM students
+  ORDER BY student_id;
 $$;
 
-CREATE FUNCTION addStudent (
-  a_first_name      TEXT,
-  a_last_name       TEXT,
-  a_email           TEXT,
-  a_enrollment_date DATE
-) 
+--ADD STUDENT FUNCTION--
+CREATE OR REPLACE FUNCTION addStudent(
+  n_first_name      TEXT, 
+  n_last_name       TEXT, 
+  n_email           TEXT, 
+  n_enrollment_date DATE
+)
 RETURNS students
 LANGUAGE sql
 AS $$
-  INSERT INTO students (first_name, last_name, email, enrollment_date)
-  VALUES (a_first_name, a_last_name, a_email, a_enrollment_date)
+  INSERT INTO students(first_name, last_name, email, enrollment_date)
+  VALUES (n_first_name, n_last_name, n_email, n_enrollment_date)
   RETURNING *;
 $$;
 
-CREATE FUNCTION updateStudentEmail(student_id INT, new_email TEXT)
+--UPDATE STUDENT EMAIL FUNCTION--
+CREATE OR REPLACE FUNCTION updateStudentEmail(
+  n_student_id    INT, 
+  n_new_email     TEXT
+)
 RETURNS students
 LANGUAGE sql
 AS $$
   UPDATE students
-  SET email = new_email
-  WHERE student_id = student_id
-  RETURNING *;
+  SET email = n_new_email
+  WHERE student_id = n_student_id
+  RETURN *;
 $$;
 
-CREATE FUNCTION deleteStudent(student_id INT)
+--DELETE STUDENT FUNCTION--
+CREATE OR REPLACE FUNCTION deleteStudent(
+  n_student_id  INT
+)
 RETURNS students
 LANGUAGE sql
 AS $$
   DELETE FROM students
-  WHERE student_id = student_id
-  RETURNING *;
+  WHERE student_id = n_student_id
+  RETURN *;
 $$;
