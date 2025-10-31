@@ -22,26 +22,44 @@ INSERT INTO students (first_name, last_name, email, enrollment_date) VALUES
 	('Jim', 'Beam', 'jim.beam@example.com', '2023-09-02');
 ON CONFLICT DO NOTHING;
 
-CREATE FUNCTION getAllStudents()
-RETURNS TABLE (
-    student_id INT,
-    first_name TEXT,
-    last_name TEXT,
-    email TEXT,
-    enrollment_date DATE
-) LANGUAGE plpgsql AS $$
+SET search_path TO "Part1";
+
+CREATE OR REPLACE FUNCTION get_all_students()
+RETURNS SETOF students
+LANGUAGE sql
+AS $$
+  SELECT * FROM students ORDER BY student_id;
+$$;
 
 CREATE FUNCTION addStudent (
-    first_name TEXT,
-    last_name TEXT,
-    email TEXT,
-    enrollment_date DATE
-) RETURNS VOID LANGUAGE plpgsql AS $$
-BEGIN 
-
+  a_first_name      TEXT,
+  a_last_name       TEXT,
+  a_email           TEXT,
+  a_enrollment_date DATE
+) 
+RETURNS students
+LANGUAGE sql
+AS $$
+  INSERT INTO students (first_name, last_name, email, enrollment_date)
+  VALUES (a_first_name, a_last_name, a_email, a_enrollment_date)
+  RETURNING *;
+$$;
 
 CREATE FUNCTION updateStudentEmail(student_id INT, new_email TEXT)
-RETURNS VOID LANGUAGE plpgsql AS $$
+RETURNS students
+LANGUAGE sql
+AS $$
+  UPDATE students
+  SET email = new_email
+  WHERE student_id = student_id
+  RETURNING *;
+$$;
 
 CREATE FUNCTION deleteStudent(student_id INT)
-RETURNS VOID LANGUAGE plpgsql AS $$
+RETURNS students
+LANGUAGE sql
+AS $$
+  DELETE FROM students
+  WHERE student_id = student_id
+  RETURNING *;
+$$;
