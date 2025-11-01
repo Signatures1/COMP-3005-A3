@@ -20,14 +20,16 @@ INSERT INTO students (first_name, last_name, email, enrollment_date) VALUES
 	('John', 'Doe', 'john.doe@example.com', '2023-09-01'),
 	('Jane', 'Smith', 'jane.smith@example.com', '2023-09-01'),
 	('Jim', 'Beam', 'jim.beam@example.com', '2023-09-02');
-
+ON CONFLICT (email) DO NOTHING;
 SET search_path TO "Part1";
 
 --GET ALL STUDENTS FUNCTION--
 CREATE OR REPLACE FUNCTION getAllStudents()
 RETURNS SETOF students
-LANGUAGE sql
+LANGUAGE plpgsql
 AS $$
+  --SELECT full table--
+  RETURN QUERY
   SELECT *
   FROM students
   ORDER BY student_id;
@@ -38,14 +40,23 @@ CREATE OR REPLACE FUNCTION addStudent(
   n_first_name      TEXT, 
   n_last_name       TEXT, 
   n_email           TEXT, 
-  n_enrollment_date DATE
+  n_enrollment_date DATE DEFAULT CURRENT_DATE
 )
-RETURNS students
-LANGUAGE sql
+RETURNS SETOF students
+LANGUAGE plpgsql
 AS $$
-  INSERT INTO students(first_name, last_name, email, enrollment_date)
-  VALUES (n_first_name, n_last_name, n_email, n_enrollment_date)
-  RETURNING *;
+  BEGIN
+    --CHECK IF EMAIL EXISTS--
+    IF EXISTS(SELECT 1 FROM students WHERE email = n_email) THEN 
+      RAISE EXCEPTION 'Email % already exists', n_email;
+    END IF;
+
+    --ADDING student--
+    RETURN QUERY
+    INSERT INTO students (first_name, last_name, email, enrollment_date)
+    VALUES (n_first_name, n_last_name, n_email, n_enrollment_date)
+    RETURNING *;
+  END;
 $$;
 
 --UPDATE STUDENT EMAIL FUNCTION--
@@ -53,23 +64,46 @@ CREATE OR REPLACE FUNCTION updateStudentEmail(
   n_student_id    INT, 
   n_new_email     TEXT
 )
-RETURNS students
-LANGUAGE sql
+RETURNS SETOF students
+LANGUAGE plpgsql
 AS $$
-  UPDATE students
-  SET email = n_new_email
-  WHERE student_id = n_student_id
-  RETURN *;
+  BEGIN
+    --CHECK if student exists--
+    IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = n_student_id) THEN 
+      RAISE EXCEPTION 'Student with ID % does not exist', n_student_id;
+    END IF;
+
+    --CHECK if email exists for another student--
+    IF EXISTS (SELECT 1 FROM students WHERE email = n_new_email AND student_id != n_student_id) THEN
+      RAISE EXCEPTION 'Email % already in use for another student', n_new_email;
+    END IF;
+
+    --UPDATE email--
+    RETURN QUERY
+    UPDATE students
+    SET email = n_new_email
+    WHERE student_id = n_student_id
+    RETURNING *;
+  END;
 $$;
 
 --DELETE STUDENT FUNCTION--
 CREATE OR REPLACE FUNCTION deleteStudent(
   n_student_id  INT
 )
-RETURNS students
-LANGUAGE sql
+RETURNS SETOF students
+LANGUAGE plpgsql
 AS $$
-  DELETE FROM students
-  WHERE student_id = n_student_id
-  RETURN *;
+  BEGIN
+    --CHECK if student exists--
+    IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = n_student_id) THEN
+      RAISE EXCEPTION 'Student with ID % does not exist', n_student_id;
+    END IF;
+
+    --DELETING student--
+    RETURN QUERY
+    DELETE FROM students
+    WHERE student_id = n_student_id
+    RETURNING *;
+  END;
 $$;
