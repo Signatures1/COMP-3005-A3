@@ -1,10 +1,7 @@
+-- DROP SCHEMA IF EXISTS "Part1" ;
+CREATE SCHEMA IF NOT EXISTS "Part1" AUTHORIZATION postgres;
 -- SCHEMA: Part1
 SET search_path TO "Part1";
-
--- DROP SCHEMA IF EXISTS "Part1" ;
-
-CREATE SCHEMA IF NOT EXISTS "Part1"
-    AUTHORIZATION postgres;
 
 -- TABLE: students --
 CREATE TABLE IF NOT EXISTS students (
@@ -19,20 +16,21 @@ CREATE TABLE IF NOT EXISTS students (
 INSERT INTO students (first_name, last_name, email, enrollment_date) VALUES
 	('John', 'Doe', 'john.doe@example.com', '2023-09-01'),
 	('Jane', 'Smith', 'jane.smith@example.com', '2023-09-01'),
-	('Jim', 'Beam', 'jim.beam@example.com', '2023-09-02');
+	('Jim', 'Beam', 'jim.beam@example.com', '2023-09-02')
 ON CONFLICT (email) DO NOTHING;
-SET search_path TO "Part1";
 
 --GET ALL STUDENTS FUNCTION--
 CREATE OR REPLACE FUNCTION getAllStudents()
 RETURNS SETOF students
 LANGUAGE plpgsql
 AS $$
-  --SELECT full table--
-  RETURN QUERY
-  SELECT *
-  FROM students
-  ORDER BY student_id;
+  BEGIN
+    --SELECT full table--
+    RETURN QUERY
+    SELECT *
+    FROM students
+    ORDER BY student_id;
+  END;
 $$;
 
 --ADD STUDENT FUNCTION--
