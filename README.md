@@ -37,9 +37,7 @@ SETUP:
         <br>
     3. Go to db folder and copy&paste db.sql into database and save it
     <br>
-    4. RUN main.py to verify connection(only continue to next steps once connection is established)
-    <br>
-    5. Uncomment out all test steps, and run them in order by comments
+    4. RUN main.py
     <br>
 
 Demo: 

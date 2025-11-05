@@ -2,6 +2,7 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from pprint import pprint
 load_dotenv()
 
 def get_connection():
@@ -81,43 +82,105 @@ def deleteStudent(student_id):
 
 if __name__ == "__main__":
     """
-    TESTING AREA
+    TESTING AREA — readable, toggleable, and safe
     """
+
+    # ---- Toggle tests here (True/False) ----
+    RUN_LIST_BEFORE   = True
+    RUN_ADD_TEMP      = True
+    RUN_UPDATE_TEMP   = True
+    RUN_DELETE_TEMP   = True
+    RUN_DUP_EMAIL_ERR = True   # expect error (uses seeded john.doe@example.com)
+    RUN_BAD_ID_UPD    = True   # expect error
+    RUN_BAD_ID_DEL    = True   # expect error
+    RUN_LIST_AFTER    = True
+
+    # ---- Helpers ----
+    def banner(title: str):
+        print("\n" + "=" * 70)
+        print(title)
+        print("=" * 70)
+    def show_rows(title: str, rows):
+        banner(title)
+        for r in rows:
+            pprint(dict(r))
+    def call_and_show(title: str, fn, *args):
+        banner(title)
+        res = fn(*args)
+        if isinstance(res, list):
+            for r in res:
+                pprint(dict(r))
+        else:
+            pprint(dict(res))
+        return res
+    def expect_db_error(title: str, fn, *args):
+        banner(f"{title} (expecting error)")
+        try:
+            res = fn(*args)
+            print("Expected an error but got:", res)
+        except psycopg2.Error as e:
+            print("Caught expected DB error:")
+            print(e.pgerror or str(e))
+        except Exception as e:
+            print("Caught expected error (non-DB):", e)
+    temp_row = None 
+
     try:
-        conn = get_connection()             #VERIFY CONNECTION
-        print("Success")                
+        conn = get_connection()
+        print("Success")
+        conn.close()
 
-        print(getAllStudents())             #TEST PRINT (RUN THIS FIRST)
+        if RUN_LIST_BEFORE:
+            show_rows("Initial students", getAllStudents())
 
-        #TEST 1 ADD STUDENT(UNCOMMENT THE TWO PRINTS UNDER THIS COMMENT TO TEST)  
-        #print(addStudent("firstname", "lastname", "firstnamelastname@gmail.com", "2025-11-05"))
-        #print(getAllStudents())
+        #1 add temp student
+        if RUN_ADD_TEMP:
+            temp_row = call_and_show(
+                "Add temp student",
+                addStudent, "Temp", "User", "temp.user@example.com", None)
+            
+            show_rows("Updated(ADD) students", getAllStudents()) #show table update
 
-        #TEST 2 EDIT STUDENT EMAIL(UNCOMMENT THE TWO PRINTS UNDER THIS COMMENT TO TEST)
-        #print(updateStudentEmail(2, "testing@gmail.com"))
-        #print(getAllStudents())
+        #2 update temp student email (uses returned ID)
+        if RUN_UPDATE_TEMP:
+            call_and_show(
+                "Update temp email",
+                updateStudentEmail, temp_row["student_id"], "updated@update.com"
+            )
+            show_rows("Updated(update-email) students", getAllStudents()) #show table update
 
-        #TEST 3 DELETE STUDENT(UNCOMMENT THE TWO PRINTS UNDER THIS COMMENT TO TEST)
-        #print(deleteStudent(1))
-        #print(getAllStudents())
+        #3 delete temp student
+        if RUN_DELETE_TEMP:
+            call_and_show(
+                "Delete temp student",
+                deleteStudent, temp_row["student_id"])
+            show_rows("Updated(DELETE) students", getAllStudents()) #show table update
+        temp_row = None  
 
-        #TEST 4 FOR PRE-EXISTING EMAIL(UNCOMMENT THE TWO PRINTS UNDER THIS COMMENT TO TEST)
-        #print(addStudent("firstname", "lastname", "firstnamelastname@gmail.com", "2025-11-05"))
-        #print(getAllStudents())
+        #4 TEST CASE: duplicate email insert
+        if RUN_DUP_EMAIL_ERR:
+            expect_db_error(
+                "Duplicate email insert",
+                addStudent, "John", "Clone", "john.doe@example.com", None
+            )
 
-        #TEST 5 SAME EMAIL EDIT(UNCOMMENT THE TWO PRINTS UNDER THIS COMMENT TO TEST)
-        #print(updateStudentEmail(2, "testing@gmail.com"))
-        #print(getAllStudents())
+        #5 TEST CASE: update non-existing ID
+        if RUN_BAD_ID_UPD:
+            expect_db_error(
+                "Update non-existent ID",
+                updateStudentEmail, 999, "nobody@example.com"
+            )
 
-        #TEST 6 ID DOESNT EXIST EMAIL EDIT(UNCOMMENT THE TWO PRINTS UNDER THIS COMMENT TO TEST)
-        #print(updateStudentEmail(10, "testing@gmail.com"))
-        #print(getAllStudents())
+        #6 TEST CASE: delete non-existing ID
+        if RUN_BAD_ID_DEL:
+            expect_db_error(
+                "Delete non-existent ID",
+                deleteStudent, 999)
 
-        #TEST 7 DELETE STUDENT ID DOESNT EXIST(UNCOMMENT THE TWO PRINTS UNDER THIS COMMENT TO TEST)
-        #print(deleteStudent(20))
-        #print(getAllStudents())
-
-        conn.close()                        #TERMINATE CONNECTION AT END
-        print("Connection closed.")
-    except psycopg2.Error as e:             #PROGRAM FAILED
-        print(f"❌ Error connecting to database: {e}")
+        #7 AFTER ALL TESTS
+        if RUN_LIST_AFTER:
+            show_rows("Final students", getAllStudents())
+        
+        print("PROGRAM")
+    except psycopg2.Error as e:
+        print(f"Error connecting to database: {e}")
