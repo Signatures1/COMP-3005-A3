@@ -23,7 +23,7 @@ SETUP:
         <br>
     2. In app folder, create a (.env) file and fill it with your databse info:
     <br>
-        PGHOST=127.0.0.1
+        PGHOST=
         <br>
         PGPORT=
         <br>
